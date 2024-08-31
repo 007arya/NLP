@@ -1,0 +1,98 @@
+# Install necessary libraries
+!pip install spacy --upgrade
+!pip install langdetect
+!pip install wordcloud
+!pip install nltk
+
+# Import libraries
+import spacy
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+import re
+import random
+from google.colab import drive
+from wordcloud import WordCloud
+from langdetect import detect
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# Download necessary resources
+!python -m spacy download en_core_web_sm
+nltk.download('vader_lexicon')
+
+# Mount Google Drive
+drive.mount('/content/drive')
+
+# Load the dataset
+twitter_training = pd.read_csv('/content/drive/My Drive/twitter_training.csv', 
+                               header=None, names=['user', 'place', 'sentiment', 'text'], encoding='latin1')
+
+# Explore the dataset
+print(twitter_training['sentiment'].unique())
+print(np.unique(twitter_training['sentiment'], return_counts=True))
+
+# Separate features and labels
+X = twitter_training['text'].values
+Y = twitter_training['sentiment'].values
+
+# Split the data into training and test sets (3% for training, 97% for testing)
+X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.97, random_state=42)
+
+# Load SpaCy model
+nlp = spacy.load('en_core_web_sm')
+
+# Text preprocessing function
+def preprocessing(sentence):
+    sentence = sentence.lower().replace('.', '')
+    tokens = [token.lemma_ for token in nlp(sentence) if not (token.is_stop or token.like_num or token.is_punct or token.is_space or len(token) == 1)]
+    return ' '.join(tokens)
+
+# Preprocess the test data
+X_test_cleaned = [preprocessing(tweet) for tweet in X_test]
+
+# Create a word cloud from the cleaned test data
+texts = ' '.join(X_test_cleaned)
+cloud = WordCloud().generate(texts)
+plt.figure(figsize=(10, 20))
+plt.imshow(cloud, interpolation='bilinear')
+plt.axis('off')
+plt.show()
+
+# Detect languages in the test data
+languages = []
+for text in X_test_cleaned:
+    if text != '':
+        languages.append(detect(text))
+
+print(np.unique(languages, return_counts=True))
+
+# Sentiment analysis using NLTK's VADER
+nltk_classifier = SentimentIntensityAnalyzer()
+for sentence in X_test_cleaned:
+    print(nltk_classifier.polarity_scores(sentence), '_', sentence)
+
+# Vectorize the training data using TF-IDF
+X_train_cleaned = [preprocessing(tweet) for tweet in X_train]
+vectorizer = TfidfVectorizer()
+X_train_tfidf = vectorizer.fit_transform(X_train_cleaned)
+X_test_tfidf = vectorizer.transform(X_test_cleaned)
+
+# Train a Decision Tree classifier
+classifier = DecisionTreeClassifier()
+classifier.fit(X_train_tfidf, Y_train)
+
+# Make predictions on the test data
+predictions = classifier.predict(X_test_tfidf)
+
+# Evaluate the model
+accuracy = accuracy_score(Y_test, predictions)
+print("Accuracy:", accuracy)
+cm = confusion_matrix(Y_test, predictions)
+print("Confusion Matrix:\n", cm)
+print("Classification Report:\n", classification_report(Y_test, predictions))
