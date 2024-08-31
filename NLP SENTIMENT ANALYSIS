@@ -1,0 +1,124 @@
+#NLP_SENTIMENT_ANALYSIS
+
+!pip install spacy --upgrade
+
+import spacy 
+
+import spacy as spacy
+spacy.__version__
+
+!python -m spacy download en_core_web_sm
+
+!python -m spacy download en_core_web_sm
+
+import spacy
+import en_core_web_sm
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+import numpy as np
+import re
+import random
+from google.colab import drive
+
+drive.mount('/content/twitter_training')
+
+twitter_training = pd.read_csv('/content/twitter_training.csv', header = None,
+                              names = ['user','place','sentiment','text'], encoding = 'latin1')
+							  
+twitter_training
+
+twitter_training['sentiment'].unique()
+
+np.unique(twitter_training['sentiment'], return_counts=True)
+
+twitter_training
+
+X = twitter_training.iloc[:, 3].values
+X
+
+Y = twitter_training.iloc[:, 2].values
+Y
+
+from sklearn.model_selection import train_test_split
+X, _, Y, _ = train_test_split(X, Y, test_size=0.97)
+
+X,Y
+X.shape, Y.shape
+
+X_train, Y_train, X_test, Y_test = train_test_split(X, Y, test_size=0.2)
+
+X_train.shape, Y_train.shape, X_test.shape, Y_test.shape
+
+nlp = spacy.load('en_core_web_sm')
+nlp
+
+def preprocessing(sentence):
+  sentence = sentence.lower()
+  sentence = sentence.replace('.','')
+  tokens = []
+  tokens = [token.text for token in nlp(sentence) if not (token.is_stop or token.like_num or token.is_punct or token.is_space or len(token) == 1)]
+  token = ' '.join([element for element in tokens])
+  return tokens
+  
+X_test_cleaned = [preprocessing(tweet) for tweet in X_test]
+
+texts = ''
+for text in X_test_cleaned:
+  texts += ' '.join(text)
+  
+def axis(arg=None, /, *, emit=True, **kwargs):
+    pass
+	
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+cloud = WordCloud()
+cloud = cloud.generate(texts)
+plt.figure(figsize=(10,20))
+plt.imshow(cloud)
+plt.axis
+
+!pip install langdetect
+
+from langdetect import detect
+
+detect('This is an English text')
+
+languages []
+for text in X_test_cleaned:
+if text != ''
+   languages.append(detect(text))
+   
+np.unique(languages, return_counts=True)
+
+import nltk
+nltk.download('vader_lexicon')
+
+from nltk.sentiment.veder import SentimentIntensityAnalyzer
+
+nltk_classifier = SentimentIntensityAnalyzer()
+nltk_classifier.polarity_scores('I love this food')
+
+for sentence in X_test
+    print (nltk_classifier.polarity_scores(sentence),'_',sentence)
+	
+from sklearn.feature_extraction.text import Tfidf Vectorizer
+Vectorizer = TfidfVectorizer()
+X_train_tfidf = Vectorizer.fit_transform(X_train_cleaned)
+
+def preprocessing_lemma(sentence)
+    tokens = []
+	tokens = [token.lemma_ for token in nlp(sentence)]
+	tokens = ''.join ([element for element in tokens])
+	return tokens
+	
+from sklearn.tree import DecisionTreeClassifier
+classifier = DecisionTreeClassifier()
+classifier.fit (X_train_tfidf, Y_train)
+Predictions = classifier.predict (X_test_tfidf)
+
+from sklearn.matrics import accuracy_score, classification_report, classification_matrix
+accuracy_score(Y_test, predictions)
+cm = confussion_matrix(Y_test,Predictions)
+cm
+print(classification_report(Y_test, predictions)
